@@ -21,6 +21,23 @@ wheels/
 *.egg
 MANIFEST
 
+# Cython generated files
+*.c
+*.cpp
+*.so
+*.pyd
+*.pyxbld
+
+# Build directories
+build/
+dist/
+*.egg-info/
+
+# Compiled extensions
+*.cp310-*
+*.cp311-*
+*.cp312-*
+
 # PyInstaller
 *.manifest
 *.spec
