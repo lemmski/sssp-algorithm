@@ -184,11 +184,11 @@ class SSSPGame:
 
         # Instructions based on mode
         if self.mode == "place_nodes":
-            instructions = "Click to place nodes. Press SPACE to switch to adding edges."
+            instructions = "Left: Place nodes | Right: Set source (green) and target (red) | SPACE: Next mode"
         elif self.mode == "add_edges":
-            instructions = "Click nodes to select/deselect. Press SPACE to run algorithms."
+            instructions = "Left: Select nodes to connect | Right: Change source/target | SPACE: Run algorithms"
         else:
-            instructions = "Press R to reset, C to clear graph."
+            instructions = "Running algorithms... Press R to reset"
 
         inst_text = self.font.render(instructions, True, self.TEXT_COLOR)
         self.screen.blit(inst_text, (300, 35))
@@ -201,16 +201,31 @@ class SSSPGame:
                                     True, self.TEXT_COLOR)
         self.screen.blit(count_text, (20, self.height - 60))
 
-        # Source/Target info
-        source_text = f"Source: {self.source_node.id if self.source_node else 'None'}"
-        target_text = f"Target: {self.target_node.id if self.target_node else 'None'}"
-        info_text = self.font.render(f"{source_text} | {target_text}", True, self.TEXT_COLOR)
-        self.screen.blit(info_text, (200, self.height - 60))
+        # Source/Target info with color indicators
+        if self.source_node:
+            source_text = f"Source: Node {self.source_node.id} (GREEN)"
+        else:
+            source_text = "Source: None (Right-click node to set)"
+
+        if self.target_node:
+            target_text = f"Target: Node {self.target_node.id} (RED)"
+        else:
+            target_text = "Target: None (Right-click another node to set)"
+
+        # Render source info
+        source_color = (100, 255, 100) if self.source_node else self.TEXT_COLOR
+        source_rendered = self.font.render(source_text, True, source_color)
+        self.screen.blit(source_rendered, (200, self.height - 60))
+
+        # Render target info
+        target_color = (255, 100, 100) if self.target_node else self.TEXT_COLOR
+        target_rendered = self.font.render(target_text, True, target_color)
+        self.screen.blit(target_rendered, (200, self.height - 35))
 
         # Message
         if self.message and self.message_timer > 0:
             msg_text = self.font.render(self.message, True, (255, 100, 100))
-            self.screen.blit(msg_text, (20, self.height - 35))
+            self.screen.blit(msg_text, (20, self.height - 10))
             self.message_timer -= 1
 
         # Algorithm comparison
@@ -306,20 +321,41 @@ class SSSPGame:
                     if event.button == 1:  # Left click
                         self.handle_click(event.pos)
                     elif event.button == 3:  # Right click - set source/target
-                        for node in self.nodes:
-                            if node.is_clicked(event.pos):
-                                if not self.source_node:
-                                    self.source_node = node
-                                    self.show_message(f"Set source to node {node.id}")
-                                elif not self.target_node and node != self.source_node:
-                                    self.target_node = node
-                                    self.show_message(f"Set target to node {node.id}")
-                                elif node == self.source_node:
-                                    self.source_node = None
-                                    self.show_message("Cleared source node")
-                                elif node == self.target_node:
+                    for node in self.nodes:
+                        if node.is_clicked(event.pos):
+                            # If clicking on current source, clear it
+                            if node == self.source_node:
+                                self.source_node = None
+                                node.is_start = False
+                                self.show_message("Cleared source node (green)")
+                                break
+                            # If clicking on current target, clear it
+                            elif node == self.target_node:
+                                self.target_node = None
+                                node.is_end = False
+                                self.show_message("Cleared target node (red)")
+                                break
+                            # If no source set, set this as source
+                            elif not self.source_node:
+                                if self.target_node == node:
                                     self.target_node = None
-                                    self.show_message("Cleared target node")
+                                    node.is_end = False
+                                self.source_node = node
+                                node.is_start = True
+                                self.show_message(f"Set source to node {node.id} (green)")
+                                break
+                            # If source is set but no target, set this as target
+                            elif not self.target_node:
+                                self.target_node = node
+                                node.is_end = True
+                                self.show_message(f"Set target to node {node.id} (red)")
+                                break
+                            # Both source and target are set, replace target
+                            else:
+                                self.target_node.is_end = False
+                                self.target_node = node
+                                node.is_end = True
+                                self.show_message(f"Changed target to node {node.id} (red)")
                                 break
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
